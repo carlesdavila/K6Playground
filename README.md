@@ -26,3 +26,22 @@ brew install k6
 choco install k6
 ```
 
+## 🌐 Integration with Datadog
+
+K6 can be integrated with Datadog to send real-time metrics using the DogStatsD protocol. This allows you to monitor the performance of your tests directly in the Datadog dashboard.
+
+### 🛠 Configuration
+
+1. **Set up the Datadog agent**:
+   Ensure the Datadog agent is running and configured to receive DogStatsD metrics. You can use the provided `docker-compose.yaml` file in this project or run the Datadog container manually.
+
+2. **Run K6 with Datadog output**:
+   Use the following command to execute a K6 test script and send metrics to Datadog:
+   ```bash
+   k6 run --out statsd script.js
+
+### 🔗 Useful Links
+
+- [K6 Integration with Datadog](https://grafana.com/docs/k6/latest/results-output/real-time/datadog/)
+- [Official Datadog Documentation for K6](https://docs.datadoghq.com/integrations/k6/)
+- [Installing K6](https://grafana.com/docs/k6/latest/set-up/install-k6/)

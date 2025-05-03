@@ -1,0 +1,23 @@
+﻿services:
+  datadog-agent:
+    container_name: datadog-agent
+    image: "datadog/agent:latest" # Datadog agent image
+    pid: host
+    ports:
+      - 8125:8125/udp # Port for DogStatsD metrics
+    environment:
+      - DD_API_KEY=your_api_key_here # Replace with your Datadog API key
+      - DD_SITE=datadoghq.eu # Datadog site (use datadoghq.eu for EU region)
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=1 # Allow DogStatsD traffic from non-local sources
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Mount Docker socket for container monitoring
+      - /proc/:/host/proc/:ro # Mount /proc for host process monitoring
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro # Mount cgroup for resource monitoring
+  
+#  k6:
+#    image: grafana/k6:latest # K6 image
+#    entrypoint: [ "k6", "run", "--out", "statsd", "/scripts/script.js" ] # Run K6 with statsd output
+#    volumes:
+#      - ./scripts:/scripts # Mount local scripts directory
+#    environment:
+#      - K6_STATSD_ADDR=datadog-agent:8125 # Address of the Datadog agent for statsd
