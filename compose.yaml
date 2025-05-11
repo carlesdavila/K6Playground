@@ -1,23 +1,43 @@
 ﻿services:
   datadog-agent:
     container_name: datadog-agent
-    image: "datadog/agent:latest" # Datadog agent image
+    image: "gcr.io/datadoghq/agent:latest" # Datadog agent image
     pid: host
     ports:
-      - 8125:8125/udp # Port for DogStatsD metrics
+      - 8126:8126
+      - 4317:4317
+      - 4318:4318
     environment:
-      - DD_API_KEY=your_api_key_here # Replace with your Datadog API key
+      - DD_API_KEY= # Replace with your Datadog API key
       - DD_SITE=datadoghq.eu # Datadog site (use datadoghq.eu for EU region)
-      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=1 # Allow DogStatsD traffic from non-local sources
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_ENABLED=true
+      - DD_OTLP_CONFIG_LOGS_ENABLED=true
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0.0.0.0:4317
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT=0.0.0.0:4318
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro # Mount Docker socket for container monitoring
       - /proc/:/host/proc/:ro # Mount /proc for host process monitoring
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro # Mount cgroup for resource monitoring
-  
-#  k6:
-#    image: grafana/k6:latest # K6 image
-#    entrypoint: [ "k6", "run", "--out", "statsd", "/scripts/script.js" ] # Run K6 with statsd output
-#    volumes:
-#      - ./scripts:/scripts # Mount local scripts directory
-#    environment:
-#      - K6_STATSD_ADDR=datadog-agent:8125 # Address of the Datadog agent for statsd
+    healthcheck:
+      test: [ "CMD", "agent", "health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  k6:
+    image: grafana/k6:latest
+    container_name: k6
+    depends_on:
+      datadog-agent:
+        condition: service_healthy
+    environment:
+      - K6_OTEL_EXPORTER_TYPE=http # Using HTTP exporter type due to issue: https://github.com/grafana/k6/issues/4572
+      - K6_OTEL_GRPC_EXPORTER_ENDPOINT=http://datadog-agent:4317
+      - K6_OTEL_GRPC_EXPORTER_INSECURE=true
+      - K6_OTEL_HTTP_EXPORTER_INSECURE=true
+      - K6_OTEL_HTTP_EXPORTER_ENDPOINT=datadog-agent:4318
+      - K6_OTEL_METRIC_PREFIX=k6.
+    command: [ "run", "--tag", "test_run_id=k6_playground", "-o", "experimental-opentelemetry", "/scripts/script.js" ]
+    volumes:
+      - ./scripts:/scripts
